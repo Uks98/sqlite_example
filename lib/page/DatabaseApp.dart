@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:todolist_sqlite/data/sqclass.dart';
 
 import '../data/data.dart';
 
@@ -14,59 +15,20 @@ class DataBaseApp extends StatefulWidget {
 
 class _DataBaseAppState extends State<DataBaseApp> {
   late Future<List<Todo>> todoList;
+  DBClass dbClass = DBClass();
 
-  Future<List<Todo>> getTodos() async {
-    final Database database = await widget.db;
-    //query함수로 todos를 가져온다.
-    final List<Map<String, dynamic>> maps = await database.query("todos");
-    print(maps);
-    return List.generate(
-      maps.length,
-      (index) {
-        bool activity = maps[index]["activity"] == 1 ? true : false;
-        return Todo(
-          title: maps[index]["title"].toString(),
-          content: maps[index]["content"].toString(),
-          active: activity,
-          id: maps[index]["id"],
-        );
-      },
-    );
-  }
-
-
-  void updateTodo(Todo todo) async {
-    final Database database = await widget.db;
-    await database.update(
-      "todos", todo.toMap(),
-      where: "id = ?", // ?는 whereArgs 입력값 대응
-      whereArgs: [todo.id],
-    );
-    setState(() {
-      todoList = getTodos();
-    });
-  }
-  void _insertTodo(Todo todo) async {
-    final Database database = await widget.db;
-    await database.insert("todos", todo.toMap(),
-        //id값 충돌시를 대비함
-        conflictAlgorithm: ConflictAlgorithm.replace);
-    setState(() {
-      todoList = getTodos();
-    });
-  }
   void deleteTodo(int id)async{
     Database database = await widget.db;
     await database.delete("todos",where: "id = ?",whereArgs: [id]);
     setState((){
-      todoList = getTodos();
+      todoList = dbClass.getTodos();
     });
   }
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
-    todoList = getTodos();
+    todoList = dbClass.getTodos();
   }
   @override
   Widget build(BuildContext context) {
@@ -76,7 +38,11 @@ class _DataBaseAppState extends State<DataBaseApp> {
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           final todo = await Navigator.of(context).pushNamed("/add");
-          _insertTodo(todo as Todo);
+          dbClass.insertTodo(todo as Todo);
+          setState((){
+            todoList = dbClass.getTodos();
+          });
+          //_insertTodo(todo as Todo);
         },
         child: Icon(Icons.add),
       ),
@@ -86,7 +52,7 @@ class _DataBaseAppState extends State<DataBaseApp> {
           TextButton(onPressed: ()async{
               await Navigator.of(context).pushNamed("/clear");
               setState((){
-                todoList = getTodos();
+                todoList = dbClass.getTodos();
               });
           }, child: Text("완료한 일",style: TextStyle(color: Colors.white),),),
         ],
@@ -121,7 +87,10 @@ class _DataBaseAppState extends State<DataBaseApp> {
                                         actions: [
                                           FlatButton(
                                             onPressed: () {
-                                              deleteTodo(todo.id!);
+                                              dbClass.deleteTodo(todo.id!);
+                                              setState((){
+                                                todoList = dbClass.getTodos();
+                                              });
                                               Navigator.of(context).pop(todo);
                                             },
                                             child: Text("예"),
@@ -172,7 +141,10 @@ class _DataBaseAppState extends State<DataBaseApp> {
                                       );
                                     });
                                 if (result != null) {
-                                  updateTodo(result);
+                                  dbClass.updateTodo(result);
+                                  setState((){
+                                    todoList = dbClass.getTodos();
+                                  });
                                 }
                               },
                               title: Text(
