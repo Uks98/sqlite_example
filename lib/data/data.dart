@@ -6,8 +6,9 @@ class Todo{
   int? id;
   Todo({this.title,this.content,this.active,this.id});
 
-  //데이터를 map형태로 변환해준다.
+
   Map<String,dynamic> toMap(){
+    //데이터를 map형태로 변환해준다.
     return {
       "id": id,
       "title":title,
